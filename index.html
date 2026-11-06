@@ -188,6 +188,24 @@
       .plots { grid-template-columns: repeat(2, 1fr); }
       .farm-layout > .right-column { display: block; }
     }
+    @media (max-width: 768px) {
+      html, body { width: 100%; min-width: 0; min-height: 100%; }
+      body { height: auto; overflow-x: auto; overflow-y: auto; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
+      .landing { width: 100%; min-width: 100%; height: 100dvh; min-height: 100dvh; }
+      .landing::before { min-width: 100%; min-height: 100%; }
+      .topbar { position: sticky; }
+      .top-inner { width: 100%; min-width: 0; height: auto; min-height: 68px; padding: 8px 12px; overflow: visible; }
+      .stats { min-width: 0; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+      .stats::-webkit-scrollbar { display: none; }
+      .main { width: 100%; min-width: 0; height: auto; min-height: calc(100dvh - 69px); padding: 12px; overflow-x: auto; overflow-y: visible; touch-action: pan-x pan-y; -webkit-overflow-scrolling: touch; }
+      .page-heading { align-items: flex-start; flex-wrap: wrap; }
+      .page-heading .note { max-width: 100%; text-align: left; }
+      .plots, .animal-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .panel { min-width: 0; }
+      .shop-item .row { align-items: flex-start; }
+      .landing-toolbar { top: max(12px, env(safe-area-inset-top)); right: 12px; }
+      .landing-card { max-height: calc(100dvh - 100px); overflow: auto; padding: 32px 22px; }
+    }
   </style>
 </head>
 <body>
@@ -390,6 +408,23 @@
       document.addEventListener("input", e => { const input = e.target; if (!input.dataset.qty) return; const index = Number(input.dataset.qty), demand = state.demands[index]; if (!demand) return; const max = Math.min(demand.remaining, state.produce[demand.key]); input.value = clamp(Math.floor(Number(input.value) || 0), 0, max); const estimate = document.querySelector(`[data-estimate="${index}"]`); if (estimate) estimate.textContent = `${translateString("预计获得")}${input.value * demand.price}${translateString("金币")}`; const sell = document.querySelector(`[data-sell="${index}"]`); if (sell) sell.dataset.sellAmount = input.value; });
       document.getElementById("warehouse-btn").addEventListener("click", () => openModal("warehouse-modal")); document.getElementById("haggle-btn").addEventListener("click", haggle); document.getElementById("refresh-demand-btn").addEventListener("click", refreshForCoin); document.querySelectorAll("[data-language]").forEach(button => button.addEventListener("click", () => setLanguage(button.dataset.language))); document.getElementById("start-game-btn").addEventListener("click", startGame); document.getElementById("reset-btn").addEventListener("click", () => { closeModal("warehouse-modal"); closeModal("seed-modal"); closeModal("win-modal"); resetState(); notify("游戏已重新开始。"); }); document.getElementById("restart-win").addEventListener("click", () => { closeModal("win-modal"); resetState(); notify("游戏已重新开始。"); });
       document.querySelectorAll(".modal-backdrop").forEach(m => m.addEventListener("click", e => { if (e.target === m) closeModal(m.id); }));
+      const mobileMain = document.querySelector(".main");
+      let touchStartX = 0, touchStartY = 0;
+      mobileMain.addEventListener("touchstart", event => {
+        if (window.innerWidth > 768 || !event.touches[0]) return;
+        touchStartX = event.touches[0].clientX;
+        touchStartY = event.touches[0].clientY;
+      }, { passive: true });
+      mobileMain.addEventListener("touchmove", event => {
+        if (window.innerWidth > 768 || !event.touches[0]) return;
+        const deltaX = touchStartX - event.touches[0].clientX;
+        const deltaY = touchStartY - event.touches[0].clientY;
+        if (Math.abs(deltaX) > Math.abs(deltaY)) {
+          mobileMain.scrollLeft += deltaX;
+          touchStartX = event.touches[0].clientX;
+          event.preventDefault();
+        }
+      }, { passive: false });
       setInterval(() => { if (!gameStarted) return; const now = Date.now(); state.plots.forEach(p => { if (p.state === "growing" && Math.floor((now - p.startedAt) / 1000) >= cropInfo[p.crop].duration) p.state = "mature"; }); Object.keys(state.animals).forEach(type => { const a = state.animals[type]; if (a.state === "producing" && Math.floor((now - a.startedAt) / 1000) >= animalInfo[type].duration) a.state = "ready"; }); renderAll(); }, 1000);
       resetState();
     })();
