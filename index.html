@@ -194,17 +194,31 @@
       .landing { width: 100%; min-width: 100%; height: 100dvh; min-height: 100dvh; }
       .landing::before { min-width: 100%; min-height: 100%; }
       .topbar { position: sticky; }
-      .top-inner { width: 100%; min-width: 0; height: auto; min-height: 68px; padding: 8px 12px; overflow: visible; }
-      .stats { min-width: 0; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+      .top-inner { display: flex; flex-direction: column; align-items: stretch; width: 100%; min-width: 0; height: auto; min-height: 68px; padding: 8px 12px; overflow: visible; }
+      .brand { width: 100%; max-width: 100%; white-space: normal; overflow-wrap: anywhere; text-overflow: clip; }
+      .stats { flex-wrap: wrap; min-width: 0; max-width: 100%; overflow-x: visible; white-space: normal; }
       .stats::-webkit-scrollbar { display: none; }
+      .stat { flex: 1 1 110px; }
+      .toolbar { flex-wrap: wrap; width: 100%; }
+      .toolbar .language-switcher { flex: 0 0 auto; }
+      .toolbar .danger { flex: 1 1 120px; min-width: 0; overflow-wrap: anywhere; }
+      .nav { flex-wrap: wrap; width: 100%; }
+      .nav button { flex: 1 1 110px; max-width: none; min-width: 0; white-space: normal; overflow-wrap: anywhere; text-overflow: clip; }
       .main { width: 100%; min-width: 0; height: auto; min-height: calc(100dvh - 69px); padding: 12px; overflow-x: auto; overflow-y: visible; touch-action: pan-x pan-y; -webkit-overflow-scrolling: touch; }
       .page-heading { align-items: flex-start; flex-wrap: wrap; }
       .page-heading .note { max-width: 100%; text-align: left; }
-      .plots, .animal-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .panel { min-width: 0; }
-      .shop-item .row { align-items: flex-start; }
+      h1, h2, h3, .page-heading, .panel-head, .plot-title { min-width: 0; max-width: 100%; overflow-wrap: anywhere; word-break: break-word; }
+      .plots, .animal-list, .gift-grid, .inventory-grid { grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)); }
+      .panel { min-width: 0; max-width: 100%; overflow-wrap: anywhere; word-break: break-word; }
+      .shop-item .row, .demand .row { align-items: flex-start; flex-wrap: wrap; }
+      .shop-item .row > :last-child, .demand .row > :last-child { max-width: 100%; overflow-wrap: anywhere; }
+      .shop-item strong, .price, .note, .meta, .estimate { overflow-wrap: anywhere; word-break: break-word; white-space: normal; }
+      .actions { width: 100%; }
+      .actions button { max-width: 100%; overflow-wrap: anywhere; }
+      .shop-list { max-height: none; overflow: visible; }
       .landing-toolbar { top: max(12px, env(safe-area-inset-top)); right: 12px; }
-      .landing-card { max-height: calc(100dvh - 100px); overflow: auto; padding: 32px 22px; }
+      .landing-card { width: min(560px, calc(100% - 24px)); max-height: calc(100dvh - 100px); overflow: auto; padding: 32px 22px; }
+      .landing-card h1 { max-width: 100%; overflow-wrap: anywhere; word-break: break-word; }
     }
   </style>
 </head>
