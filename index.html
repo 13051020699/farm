@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>绿野农场</title>
+  <style>
+    :root {
+      --ink: #3e3529;
+      --muted: #746755;
+      --cream: #fff8e9;
+      --green: #2f8f55;
+      --green-dark: #246c42;
+      --gold: #f2ad22;
+      --red: #d34b4b;
+      --shadow: 0 10px 24px rgba(82, 59, 27, .13);
+    }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; }
+    body {
+      margin: 0;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+      transition: opacity .2s ease;
+      color: var(--ink);
+      font: 15px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #dff2d1;
+    }
+    body.language-switching { opacity: 0; }
+    body:not(.game-started) > .topbar,
+    body:not(.game-started) > .main { opacity: 0; pointer-events: none; }
+    body.game-started > .topbar,
+    body.game-started > .main { animation: game-fade-in .5s ease both; }
+    @keyframes game-fade-in { from { opacity: 0; } to { opacity: 1; } }
+    .landing {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      isolation: isolate;
+      background: #537c45;
+      transition: opacity .5s ease, visibility .5s ease;
+    }
+    .landing::before,
+    .landing::after { position: absolute; inset: 0; content: ""; pointer-events: none; }
+    .landing::before {
+      z-index: -2;
+      background: url("background.jpg") center center / cover no-repeat;
+      animation: landing-breathe 10s ease-in-out infinite;
+      transform-origin: center;
+    }
+    .landing::after { z-index: -1; background: rgba(0, 0, 0, .2); }
+    .landing.leaving { opacity: 0; visibility: hidden; pointer-events: none; }
+    @keyframes landing-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+    .landing-card { position: relative; z-index: 1; width: min(560px, calc(100% - 40px)); padding: 48px 36px; border: 1px solid rgba(255,255,255,.7); border-radius: 28px; text-align: center; background: rgba(255,253,246,.88); box-shadow: 0 24px 70px rgba(49, 90, 43, .24); animation: landing-content-in .5s ease both; }
+    @keyframes landing-content-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .landing-card h1 { margin-bottom: 12px; color: var(--green-dark); font-size: clamp(32px, 5vw, 52px); }
+    .landing-card p { color: var(--muted); font-size: 17px; }
+    .landing-start { margin-top: 18px; padding: 14px 34px; font-size: 18px; box-shadow: 0 0 0 0 rgba(47,143,85,.45); transition: transform .2s, filter .2s, box-shadow .2s; }
+    .landing-start:hover { transform: scale(1.06); filter: brightness(1.12); box-shadow: 0 0 0 9px rgba(47,143,85,.15), 0 8px 25px rgba(47,143,85,.35); }
+    .landing-toolbar { position: absolute; top: 20px; right: 24px; z-index: 2; }
+    .language-switcher { display: flex; align-items: center; gap: 3px; padding: 3px; border: 1px solid #d9cfba; border-radius: 9px; background: #fffdf6; }
+    .language-switcher button { min-width: 31px; padding: 5px 7px; color: var(--ink); background: transparent; font-size: 12px; }
+    .language-switcher button.active { color: #fff; background: var(--green); }
+    .landing-toolbar .language-switcher button { padding: 7px 10px; font-size: 13px; }
+    button {
+      border: 0;
+      border-radius: 9px;
+      padding: 9px 13px;
+      color: #fff;
+      background: var(--green);
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform .15s, filter .15s, opacity .15s;
+    }
+    button:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-1px); }
+    button:disabled { cursor: not-allowed; opacity: .48; }
+    .topbar {
+      background: #fffdf6;
+      border-bottom: 1px solid #e8dfcb;
+      box-shadow: 0 2px 8px rgba(65, 50, 23, .08);
+      position: sticky;
+      top: 0;
+      z-index: 4;
+    }
+    .top-inner, .main { width: 100%; max-width: 1280px; margin: auto; min-width: 0; }
+    .top-inner { display: grid; grid-template-columns: minmax(150px, 1fr) auto auto; align-items: center; gap: 10px; height: 68px; min-height: 0; padding: 5px 18px; overflow: hidden; }
+    .brand { min-width: 0; font-size: 22px; font-weight: 900; color: var(--green-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .stats { display: flex; align-items: center; gap: 8px; min-width: 0; white-space: nowrap; }
+    .stat { min-width: 0; }
+    .stat strong { display: block; overflow: hidden; text-overflow: ellipsis; font-size: 15px; }
+    .stat small { display: block; overflow: hidden; text-overflow: ellipsis; color: var(--muted); }
+    .progress { height: 9px; border-radius: 99px; overflow: hidden; background: #e7e2d5; }
+    .progress i { display: block; height: 100%; background: linear-gradient(90deg, #71c65b, #f3c33d); transition: width .3s; }
+    .nav { display: flex; gap: 5px; min-width: 0; }
+    .nav button { max-width: 118px; min-width: 0; padding: 8px 9px; background: #eee8d8; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .toolbar { display: flex; align-items: center; gap: 6px; min-width: 0; }
+    .toolbar .language-switcher { min-width: 0; }
+    .toolbar .danger { padding-left: 9px; padding-right: 9px; white-space: nowrap; }
+    .nav button.active { background: var(--green); color: white; }
+    .main { height: calc(100vh - 69px); padding: 14px 18px 18px; overflow: hidden; }
+    .page { display: none; }
+    .page.active { display: block; }
+    .page-heading { display: flex; justify-content: space-between; align-items: end; gap: 12px; min-width: 0; margin-bottom: 10px; }
+    .page-heading > div { min-width: 0; }
+    .page-heading .note { max-width: 48%; text-align: right; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { margin-bottom: 2px; font-size: 25px; }
+    h2 { font-size: 18px; margin-bottom: 9px; }
+    .subtitle { color: var(--muted); margin: 0; }
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(270px, 300px); gap: 14px; align-items: start; min-width: 0; }
+    .farm-layout { display: grid; grid-template-columns: minmax(300px, 390px) minmax(0, 1fr); gap: 14px; align-items: start; min-width: 0; }
+    .layout > *, .farm-layout > * { min-width: 0; }
+    .panel, .plot, .animal, .gift { background: rgba(255, 253, 246, .95); border: 1px solid #e8dfcb; border-radius: 16px; box-shadow: var(--shadow); }
+    .panel { padding: 13px; }
+    .panel-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-width: 0; }
+    .panel-head > * { min-width: 0; overflow-wrap: anywhere; }
+    .note { color: var(--muted); font-size: 13px; }
+    .plots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .plot { min-height: 155px; padding: 11px; position: relative; overflow: hidden; }
+    .plot::before { content: ""; position: absolute; inset: auto -20px -35px; height: 92px; background: #b6df80; border-radius: 50%; opacity: .65; }
+    .plot > * { position: relative; }
+    .plot.empty { background: #f5efd9; }
+    .plot.mature { border: 3px solid #f1ad25; animation: glow 1.2s ease-in-out infinite alternate; }
+    @keyframes glow { to { box-shadow: 0 0 0 4px rgba(241, 173, 37, .25), var(--shadow); } }
+    .plot-title { display: flex; justify-content: space-between; font-weight: 800; }
+    .crop-icon { font-size: 30px; margin: 4px 0 2px; }
+    .status { display: inline-block; border-radius: 99px; padding: 3px 8px; background: #eee8d8; color: var(--muted); font-size: 12px; font-weight: 800; }
+    .status.ready { background: #ffdf79; color: #78500a; }
+    .bar { height: 10px; margin: 8px 0; border-radius: 99px; overflow: hidden; background: #e9e3d4; }
+    .bar i { display: block; height: 100%; background: linear-gradient(90deg, #7dca54, #f2b32d); }
+    .actions { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 9px; }
+    .secondary { background: #e9e3d4; color: var(--ink); }
+    .danger { background: var(--red); }
+    .shop-item, .demand { padding: 8px 0; border-bottom: 1px dashed #ded4bf; }
+    .shop-item:last-child, .demand:last-child { border-bottom: 0; }
+    .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-width: 0; }
+    .row > :first-child { min-width: 0; overflow-wrap: anywhere; }
+    .shop-item strong { overflow-wrap: anywhere; }
+    .price { color: #a46113; font-weight: 900; white-space: nowrap; }
+    .inventory-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; }
+    .inventory-card { padding: 10px; border-radius: 11px; background: #f6f0df; }
+    .inventory-card strong { display: block; font-size: 20px; }
+    .seed { border-left: 5px solid #8ccf55; }
+    .produce { border-left: 5px solid #e39b37; }
+    .animal-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+    .animal { padding: 10px; position: relative; min-height: 155px; }
+    .animal.ready { border: 3px solid #f1ad25; animation: glow 1.2s ease-in-out infinite alternate; }
+    .animal.dead { filter: grayscale(.85); background: #eeeae2; }
+    .animal-icon { font-size: 32px; float: left; margin: -4px 8px 5px 0; }
+    .animal h3 { margin-bottom: 2px; }
+    .animal .meta { color: var(--muted); font-size: 13px; }
+    .shop-list { max-height: 350px; overflow: hidden; }
+    .mood { font-size: 24px; font-weight: 900; color: #d07b24; }
+    .merchant-box { padding-bottom: 8px; margin-bottom: 8px; border-bottom: 1px solid #e8dfcb; }
+    .quantity-control { display: flex; align-items: center; gap: 4px; margin-top: 6px; }
+    .quantity-control button { padding: 4px 9px; }
+    .quantity-control input { width: 52px; padding: 5px; text-align: center; border: 1px solid #d9cfba; border-radius: 6px; }
+    .estimate { color: #a46113; font-size: 12px; font-weight: 700; }
+    .gift-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+    .gift { padding: 18px; text-align: center; }
+    .gift-icon { font-size: 58px; margin: 5px 0; }
+    .gift .real { color: var(--muted); }
+    .empty-note { color: var(--muted); text-align: center; padding: 18px 4px; }
+    .modal-backdrop { display: none; position: fixed; inset: 0; z-index: 10; background: rgba(41, 32, 19, .45); align-items: center; justify-content: center; padding: 20px; }
+    .modal-backdrop.show { display: flex; }
+    .modal { width: min(560px, 100%); max-height: 80vh; overflow: auto; padding: 22px; border-radius: 16px; background: var(--cream); box-shadow: 0 25px 70px rgba(0,0,0,.25); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; }
+    .modal-close { background: transparent; color: var(--ink); font-size: 22px; padding: 2px 7px; }
+    .toast { position: fixed; right: 24px; bottom: 24px; z-index: 12; max-width: 360px; padding: 13px 17px; border-radius: 10px; color: white; background: #3c3327; box-shadow: var(--shadow); opacity: 0; transform: translateY(12px); pointer-events: none; transition: .25s; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    @media (max-width: 1050px) {
+      .farm-layout { grid-template-columns: 230px minmax(0, 1fr); }
+      .farm-layout > .right-column { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    }
+    @media (max-width: 760px) {
+      .top-inner, .stats, .nav { flex-wrap: wrap; }
+      .brand { width: 100%; }
+      .layout, .farm-layout, .gift-grid { grid-template-columns: 1fr; }
+      .plots { grid-template-columns: repeat(2, 1fr); }
+      .farm-layout > .right-column { display: block; }
+    }
+  </style>
+</head>
+<body>
+  <section id="landing" class="landing" aria-labelledby="landing-title">
+    <div class="landing-toolbar"><div id="landing-language-switcher" class="language-switcher" aria-label="语言切换"><button type="button" data-language="zh">中</button><button type="button" data-language="en">En</button><button type="button" data-language="de">De</button></div></div>
+    <div class="landing-card"><h1 id="landing-title">绿野农场</h1><p id="landing-subtitle">播下希望，等待丰收。</p><button id="start-game-btn" class="landing-start">开始游戏</button></div>
+  </section>
+  <header class="topbar">
+    <div class="top-inner">
+      <div class="brand">🌱 绿野农场</div>
+      <div class="stats">
+        <div class="stat"><strong>🪙 <span id="gold">30</span></strong><small>当前金币</small></div>
+        <div class="stat"><strong>成长值 <span id="growth">0</span>%</strong><div class="progress"><i id="growth-bar" style="width:0%"></i></div></div>
+        <div class="stat"><strong id="current-page">菜地</strong><small>当前页面</small></div>
+        <button id="warehouse-btn" class="secondary">📦 仓库</button>
+        <div class="toolbar"><div id="language-switcher" class="language-switcher" aria-label="语言切换"><button type="button" data-language="zh">中</button><button type="button" data-language="en">En</button><button type="button" data-language="de">De</button></div><button id="reset-btn" class="danger">重置</button></div>
+      </div>
+      <nav class="nav" aria-label="页面导航">
+        <button data-page="field" class="active">菜地</button>
+        <button data-page="farm">农场</button>
+        <button data-page="market">周边商城</button>
+      </nav>
+    </div>
+  </header>
+  <main class="main">
+    <section id="page-field" class="page active">
+      <div class="page-heading"><div><h1>菜地</h1><p class="subtitle">播下希望，等待丰收。</p></div><span class="note">六块独立菜地 · 点击空地即可选择种子</span></div>
+      <div class="layout">
+        <div class="panel"><div class="panel-head"><h2>🌾 我的菜地</h2><span class="note">成熟时会闪烁提醒</span></div><div id="plots" class="plots"></div></div>
+        <aside class="panel"><h2>🛒 菜地商城</h2><p class="note">这里只出售种子</p><div id="seed-shop"></div></aside>
+      </div>
+    </section>
+
+    <section id="page-farm" class="page">
+      <div class="page-heading"><div><h1>农场</h1><p class="subtitle">照料动物，收集新鲜产物。</p></div><span class="note">动物每种最多一只，收获20次后会退休</span></div>
+      <div class="farm-layout">
+        <aside class="panel">
+          <div class="merchant-box"><div class="panel-head"><h2>🤝 商人</h2><strong id="mood" class="mood">100%</strong></div><div id="mood-state" class="status">满意</div><div class="bar"><i id="mood-bar" style="width:100%;background:#e6a932"></i></div><div class="actions"><button id="haggle-btn">议价</button><button id="refresh-demand-btn" class="secondary">1金币立即刷新</button></div></div>
+          <div class="panel-head"><h2>🏪 店铺</h2><span class="note">每120秒刷新</span></div>
+          <div id="demands" class="shop-list"></div>
+        </aside>
+        <div class="panel">
+          <div class="panel-head"><h2>🐮 动物围栏</h2><span class="note">独立生产，互不影响</span></div>
+          <div id="animals" class="animal-list"></div>
+          <div class="panel-head" style="margin-top:10px"><h2>🛍️ 农场商城</h2><span class="note">这里只出售动物</span></div>
+          <div id="animal-shop"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="page-market" class="page">
+      <div class="page-heading"><div><h1>周边商城</h1><p class="subtitle">用农场金币兑换喜欢的礼物。</p></div><span class="note">仅支持游戏内金币兑换，不涉及现实支付</span></div>
+      <div class="gift-grid">
+        <article class="gift"><div class="gift-icon">🌽</div><h2>玉米毛绒挂件</h2><p class="real">现实价格：10元</p><p class="price">需要 500 金币</p><button data-gift="corn-plush">金币兑换</button></article>
+        <article class="gift"><div class="gift-icon">🎁</div><h2>农场礼盒</h2><p class="real">现实价格：20元</p><p class="price">需要 1000 金币</p><button data-gift="farm-box">金币兑换</button></article>
+      </div>
+    </section>
+  </main>
+
+  <div id="warehouse-modal" class="modal-backdrop" role="dialog" aria-modal="true">
+    <div class="modal"><div class="modal-header"><h2>📦 仓库</h2><button class="modal-close" data-close="warehouse-modal" aria-label="关闭">×</button></div><h3>种子</h3><div id="seed-inventory" class="inventory-grid"></div><h3 style="margin-top:18px">农产品</h3><div id="produce-inventory" class="inventory-grid"></div><h3 style="margin-top:18px">礼品记录</h3><p id="gift-record" class="note">暂无兑换记录</p></div>
+  </div>
+  <div id="seed-modal" class="modal-backdrop" role="dialog" aria-modal="true">
+    <div class="modal"><div class="modal-header"><h2>选择要种植的种子</h2><button class="modal-close" data-close="seed-modal" aria-label="关闭">×</button></div><div id="seed-options"></div></div>
+  </div>
+  <div id="win-modal" class="modal-backdrop" role="dialog" aria-modal="true">
+    <div class="modal"><div class="modal-header"><h2>🎉 农场完成啦！</h2><button class="modal-close" data-close="win-modal" aria-label="关闭">×</button></div><p id="win-message"></p><button id="restart-win">重新开始</button></div>
+  </div>
+  <div id="toast" class="toast" role="status"></div>
+
+  <script>
+    (() => {
+      const cropInfo = { corn: { name: "玉米", seed: "cornSeed", duration: 60, icon: "🌽" }, strawberry: { name: "草莓", seed: "strawberrySeed", duration: 600, icon: "🍓" } };
+      const animalInfo = {
+        cow: { name: "牛", product: "milk", productName: "牛奶", duration: 600, price: 200, icon: "🐮" },
+        chicken: { name: "鸡", product: "egg", productName: "鸡蛋", duration: 1800, price: 80, icon: "🐔" },
+        sheep: { name: "羊", product: "wool", productName: "羊毛", duration: 3600, price: 400, icon: "🐑" }
+      };
+      const productInfo = {
+        corn: { name: "玉米", unit: "个", price: 4, icon: "🌽" }, strawberry: { name: "草莓", unit: "个", price: 8, icon: "🍓" },
+        milk: { name: "牛奶", unit: "瓶", price: 15, icon: "🥛" }, egg: { name: "鸡蛋", unit: "个", price: 20, icon: "🥚" },
+        wool: { name: "羊毛", unit: "份", price: 30, icon: "🧶" }
+      };
+      const initialAnimals = () => ({ cow: { state: "idle", startedAt: 0, count: 0 }, chicken: { state: "idle", startedAt: 0, count: 0 }, sheep: { state: "idle", startedAt: 0, count: 0 } });
+      let state, currentPage = "field", selectedPlot = 0, shopTimer, toastTimer, currentLang = "zh", languageSwitchTimer, languageSwitchLocked = false, gameStarted = false;
+      const translations = {
+        en: {
+          "绿野农场": "Green Meadow Farm", "开始游戏": "Start Game", "当前金币": "Coins", "成长值": "Growth", "当前页面": "Current page", "仓库": "Warehouse", "重置": "Reset", "菜地": "Garden", "农场": "Farm", "周边商城": "Gift Shop",
+          "播下希望，等待丰收。": "Plant hope and wait for the harvest.", "六块独立菜地 · 点击空地即可选择种子": "Six independent plots · click an empty plot to choose a seed", "我的菜地": "My fields", "成熟时会闪烁提醒": "Mature crops will flash", "菜地商城": "Seed shop", "这里只出售种子": "Seeds only",
+          "农场": "Farm",           "照料动物，收集新鲜产物。": "Care for animals and collect fresh products.", "动物每种最多一只，收获20次后会退休": "One of each animal · retires after 20 collections", "店铺": "Store", "每120秒刷新": "Refreshes every 120 seconds", "每60秒刷新": "Refreshes every 60 seconds", "动物围栏": "Animal pens", "独立生产，互不影响": "Independent production", "农场商城": "Farm shop", "这里只出售动物": "Animals only", "商人": "Merchant", "当前心情": "Current mood", "议价": "Bargain", "议价会降低心情，也会影响新需求价格。": "Bargaining lowers mood and affects new prices.",           "当前收购价格已更新。": "Current buying prices have been updated.", "已花费1金币，店铺需求已刷新，商人心情恢复100%。": "One coin spent. Store orders refreshed; merchant mood restored to 100%.", "收购价已变化。": "Buying prices changed.", "商人心情下降": "Merchant mood fell ", "当前": "current ", "当前暂无收购需求，等待下一次刷新。": "No current orders. Waiting for the next refresh.", "商人的心情已经降到最低。": "The merchant's mood is already at its minimum.",
+          "用农场金币兑换喜欢的礼物。": "Exchange farm coins for gifts.", "仅支持游戏内金币兑换，不涉及现实支付": "In-game coin exchange only; no real payment", "现实价格": "Real price", "需要": "Need", "金币兑换": "Exchange with Coins", "种子": "Seeds", "农产品": "Produce", "礼品记录": "Gift records", "暂无兑换记录": "No gift records yet", "选择要种植的种子": "Choose a seed to plant", "重新开始": "Restart", "农场完成啦！": "Farm complete!", "农场成长值达到100%，你赢了": "Farm growth reached 100%, you win!", "空地": "Empty", "生长中": "Growing", "已成熟": "Ready", "选择种子": "Choose seed", "收获": "Harvest", "购买": "Buy", "金币不足": "Not enough coins", "开始生产": "Start", "收取": "Collect", "可以收取": "Ready to Collect", "生产中": "Producing", "空闲": "Idle", "已死亡": "Dead", "重新购买": "Buy again", "出售全部": "Sell", "出售": "Sell", "满意": "Satisfied", "不满": "Dissatisfied", "愤怒": "Angry", "本次最多收购": "Max this order",                     "库存": "Stock", "库存：": "Stock: ", "仓库：": "Warehouse: ", "本次最多收购：": "Max this order: ", "玉米种子": "Corn Seed", "草莓种子": "Strawberry Seed", "玉米": "Corn", "草莓": "Strawberry", "牛奶": "Milk", "鸡蛋": "Egg", "羊毛": "Wool", "牛": "Cow", "鸡": "Chicken", "羊": "Sheep", "玉米毛绒挂件": "Corn plush keychain", "农场礼盒": "Farm gift box", "金币": "Coins", "元": "yuan", "个": "pcs", "瓶": "bottle", "份": "portion",
+          "金币不足，无法购买种子。": "Not enough coins to buy seeds.", "对应种子不足。": "Not enough of this seed.", "种植不花费金币": "Planting costs no coins", "金币不足，无法购买动物。": "Not enough coins to buy this animal.", "金币不足，无法兑换礼品。": "Not enough coins to exchange this gift.", "兑换成功，礼品已加入礼品记录。": "Exchange successful. The gift was added to the gift records.", "金币不足，无法刷新店铺。": "Not enough coins to refresh the store.", "已花费1金币，店铺需求已刷新。": "One coin spent. Store orders refreshed.", "游戏已重新开始。": "Game restarted.", "购买成功，": "Purchase successful: ", "已种下": "Planted ", "，开始生长。": " and growth has started.", "准备好种下一颗希望": "Ready to plant a new hope", "状态：": "Status: ", "产物：": "Product: ",           "剩余": "Left", "剩余：": "Time left: ", "收获次数：": "Collections: ", "可以开始生产": "Ready to start", "产物已准备好": "Product is ready", "围栏已变为空栏": "The pen is empty", "种植": "Plant", "关闭": "Close", "1金币立即刷新": "Refresh now for 1 coin", "议价": "Bargain", "每60秒刷新": "Refreshes every 60 seconds", "预计获得": "Estimated: ", "出售数量": "Sale quantity", "出售": "Sell", "金币": "Coins", "简体中文": "简体中文", "语言切换": "Language"
+        },
+        de: {
+          "绿野农场": "Grüner Bauernhof", "开始游戏": "Spiel starten", "当前金币": "Münzen", "成长值": "Wachstum", "当前页面": "Aktuelle Seite", "仓库": "Lager", "重置": "Zurücksetzen", "菜地": "Garten", "农场": "Bauernhof", "周边商城": "Geschenkeladen",
+          "播下希望，等待丰收。": "Hoffnung säen und auf die Ernte warten.", "六块独立菜地 · 点击空地即可选择种子": "Sechs Felder · leeres Feld anklicken und Samen wählen", "我的菜地": "Meine Felder", "成熟时会闪烁提醒": "Reife Pflanzen blinken", "菜地商城": "Samenladen", "这里只出售种子": "Nur Samen",
+          "照料动物，收集新鲜产物。": "Tiere versorgen und frische Produkte sammeln.", "动物每种最多一只，收获20次后会退休": "Je ein Tier · Ruhestand nach 20 Sammlungen", "店铺": "Laden", "每120秒刷新": "Alle 120 Sekunden neu", "每60秒刷新": "Alle 60 Sekunden neu", "动物围栏": "Tiergehege", "独立生产，互不影响": "Unabhängige Produktion", "农场商城": "Tierladen", "这里只出售动物": "Nur Tiere", "商人": "Händler", "当前心情": "Stimmung", "议价": "Handeln", "议价会降低心情，也会影响新需求价格。": "Handeln senkt die Stimmung und beeinflusst neue Preise.",           "当前收购价格已更新。": "Die aktuellen Ankaufspreise wurden aktualisiert.", "已花费1金币，店铺需求已刷新，商人心情恢复100%。": "Eine Münze ausgegeben. Aufträge aktualisiert; Händlerstimmung auf 100% zurückgesetzt.", "收购价已变化。": "Ankaufspreise geändert.", "商人心情下降": "Händlerstimmung gesunken ", "当前": "aktuell ", "商人的心情已经降到最低。": "Die Stimmung des Händlers ist bereits am Minimum.",
+          "用农场金币兑换喜欢的礼物。": "Geschenke mit Hofmünzen tauschen.", "仅支持游戏内金币兑换，不涉及现实支付": "Nur Spielmünzen, keine echte Zahlung", "现实价格": "Realpreis", "需要": "Benötigt", "金币兑换": "Mit Münzen tauschen", "种子": "Samen", "农产品": "Produkte", "礼品记录": "Geschenkprotokoll", "暂无兑换记录": "Noch keine Geschenke", "选择要种植的种子": "Samen zum Pflanzen wählen", "重新开始": "Neustart", "农场完成啦！": "Hof abgeschlossen!", "农场成长值达到100%，你赢了": "Das Farmwachstum hat 100% erreicht, du gewinnst!", "空地": "Leer", "生长中": "Wächst", "已成熟": "Bereit", "选择种子": "Samen wählen", "收获": "Ernten", "购买": "Kaufen", "金币不足": "Zu wenig Münzen", "开始生产": "Starten", "收取": "Sammeln", "可以收取": "Abholbereit", "生产中": "Produziert", "空闲": "Untätig", "已死亡": "Tot", "重新购买": "Neu kaufen", "出售全部": "Verkaufen", "出售": "Verkaufen", "满意": "Zufrieden", "不满": "Unzufrieden", "愤怒": "Wütend", "本次最多收购": "Max. Auftrag", "当前暂无收购需求，等待下一次刷新。": "Keine Aufträge. Auf Aktualisierung warten.",                     "库存": "Bestand", "库存：": "Bestand: ", "仓库：": "Bestand: ", "本次最多收购：": "Max. Auftrag: ", "玉米种子": "Maissaat", "草莓种子": "Erdbeersaat", "玉米": "Mais", "草莓": "Erdbeere", "牛奶": "Milch", "鸡蛋": "Ei", "羊毛": "Wolle", "牛": "Kuh", "鸡": "Huhn", "羊": "Schaf", "玉米毛绒挂件": "Mais-Anhänger", "农场礼盒": "Hof-Geschenkbox", "金币": "Münzen", "元": "Yuan", "个": "St.", "瓶": "Flasche", "份": "Portion",
+          "金币不足，无法购买种子。": "Nicht genug Münzen für Samen.", "对应种子不足。": "Nicht genug von diesem Samen.", "种植不花费金币": "Pflanzen kostet keine Münzen", "金币不足，无法购买动物。": "Nicht genug Münzen für dieses Tier.", "金币不足，无法兑换礼品。": "Nicht genug Münzen für dieses Geschenk.", "兑换成功，礼品已加入礼品记录。": "Tausch erfolgreich. Das Geschenk wurde gespeichert.", "金币不足，无法刷新店铺。": "Nicht genug Münzen zum Aktualisieren.", "已花费1金币，店铺需求已刷新。": "Eine Münze ausgegeben. Aufträge aktualisiert.", "游戏已重新开始。": "Spiel neu gestartet.", "购买成功，": "Kauf erfolgreich: ", "已种下": "Gepflanzt: ", "，开始生长。": " Wachstum beginnt.", "准备好种下一颗希望": "Bereit, neue Hoffnung zu pflanzen", "状态：": "Status: ", "产物：": "Produkt: ",           "剩余": "Verbleibend", "剩余：": "Übrig: ", "收获次数：": "Sammlungen: ", "可以开始生产": "Bereit zum Start", "产物已准备好": "Produkt ist bereit", "围栏已变为空栏": "Das Gehege ist leer", "种植": "Pflanzen", "关闭": "Schließen", "1金币立即刷新": "Für 1 Münze aktualisieren", "议价": "Handeln", "每60秒刷新": "Alle 60 Sekunden neu", "预计获得": "Erwartet: ", "出售数量": "Verkaufsmenge", "出售": "Verkaufen", "金币": "Münzen", "简体中文": "简体中文", "语言切换": "Sprache"
+        }
+      };
+      function applyLanguage() {
+        const map = translations[currentLang];
+        document.querySelectorAll("body *").forEach(element => {
+          element.childNodes.forEach(node => {
+            if (node.nodeType === Node.TEXT_NODE) {
+              if (!node.originalText) node.originalText = node.nodeValue;
+              let text = node.originalText;
+              if (currentLang !== "zh") Object.entries(map).sort((a, b) => b[0].length - a[0].length).forEach(([from, to]) => { text = text.split(from).join(to); });
+              node.nodeValue = text;
+            }
+          });
+        });
+        document.documentElement.lang = currentLang === "zh" ? "zh-CN" : currentLang;
+        document.querySelectorAll(".language-switcher").forEach(switcher => {
+          switcher.setAttribute("aria-label", translateString("语言切换"));
+          switcher.querySelectorAll("[data-language]").forEach(button => {
+            button.classList.toggle("active", button.dataset.language === currentLang);
+            button.disabled = languageSwitchLocked;
+            button.setAttribute("aria-pressed", button.dataset.language === currentLang);
+          });
+        });
+        document.querySelectorAll("[aria-label]").forEach(element => {
+          const label = element.getAttribute("aria-label");
+          if (label === "出售数量" || label === "Verkaufsmenge" || label === "Sale quantity") element.setAttribute("aria-label", translateString("出售数量"));
+        });
+        if (document.getElementById("landing-title")) {
+          document.getElementById("landing-title").textContent = translateString("绿野农场");
+          document.getElementById("landing-subtitle").textContent = translateString("播下希望，等待丰收。");
+          document.getElementById("start-game-btn").textContent = translateString("开始游戏");
+        }
+      }
+      function translateString(message) {
+        if (currentLang === "zh") return message;
+        return Object.entries(translations[currentLang]).sort((a, b) => b[0].length - a[0].length).reduce((text, [from, to]) => text.split(from).join(to), message);
+      }
+      function setLanguage(next) {
+        if (languageSwitchLocked || next === currentLang || !["zh", "en", "de"].includes(next)) return;
+        languageSwitchLocked = true;
+        applyLanguage();
+        document.body.classList.add("language-switching");
+        clearTimeout(languageSwitchTimer);
+        languageSwitchTimer = setTimeout(() => {
+          try {
+            currentLang = next;
+            renderAll();
+          } finally {
+            document.body.style.opacity = "1";
+            document.body.classList.remove("language-switching");
+            languageSwitchTimer = setTimeout(() => {
+              languageSwitchLocked = false;
+              applyLanguage();
+            }, 160);
+          }
+        }, 140);
+      }
+      function startGame() {
+        if (document.body.classList.contains("game-started")) return;
+        document.getElementById("landing").classList.add("leaving");
+        document.body.classList.add("game-started");
+        gameStarted = true;
+        state.startedAt = Date.now();
+        setTimeout(() => { document.getElementById("landing").style.display = "none"; }, 500);
+      }
+      function resetState() {
+        currentPage = "field";
+        document.querySelectorAll(".page").forEach(page => page.classList.toggle("active", page.id === "page-field"));
+        state = { gold: 30, growth: 0, mood: 100, seeds: { cornSeed: 5, strawberrySeed: 5 }, produce: { corn: 0, strawberry: 0, milk: 0, egg: 0, wool: 0 }, plots: Array.from({ length: 6 }, () => ({ state: "empty", crop: "", startedAt: 0 })), animals: initialAnimals(), demands: [], gifts: [], startedAt: Date.now(), won: false };
+        refreshDemands(); renderAll();
+      }
+      const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+      const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+      const formatTime = seconds => `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
+      function notify(message) { const el = document.getElementById("toast"); el.textContent = translateString(message); el.classList.add("show"); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove("show"), 2800); }
+      function addGrowth() { state.growth = clamp(state.growth + randInt(1, 3), 0, 100); checkWin(); }
+      function checkWin() { if (state.growth >= 100 && !state.won) { state.won = true; const minutes = Math.floor((Date.now() - state.startedAt) / 60000); document.getElementById("win-message").textContent = `农场成长值达到100%，你赢了！本次农场总用时约 ${minutes} 分钟。`; openModal("win-modal"); } }
+      function buySeed(type) { if (state.gold < 2) return notify("金币不足，无法购买种子。"); state.gold -= 2; state.seeds[type]++; notify(`购买成功，${type === "cornSeed" ? "玉米" : "草莓"}种子加入仓库。`); renderAll(); }
+      function openSeedChoice(index) { selectedPlot = index; document.getElementById("seed-options").innerHTML = ["corn", "strawberry"].map(c => { const info = cropInfo[c]; const available = state.seeds[info.seed]; return `<div class="shop-item row"><div><strong>${info.icon} ${info.name}种子</strong><div class="note">库存：${available} · 种植不花费金币</div></div><button data-plant="${c}" ${available === 0 ? "disabled" : ""}>种植</button></div>`; }).join(""); openModal("seed-modal"); }
+      function plant(crop) { const plot = state.plots[selectedPlot], info = cropInfo[crop]; if (!plot || plot.state !== "empty") return notify("这块菜地不是空地。"); if (state.seeds[info.seed] <= 0) return notify("对应种子不足。"); state.seeds[info.seed]--; Object.assign(plot, { state: "growing", crop, startedAt: Date.now() }); closeModal("seed-modal"); notify(`已种下${info.name}，开始生长。`); renderAll(); }
+      function harvestPlot(index) { const plot = state.plots[index], info = cropInfo[plot.crop]; if (plot.state !== "mature") return; const coins = randInt(2, 5), growth = randInt(1, 3); state.gold += coins; state.produce[plot.crop]++; state.growth = clamp(state.growth + growth, 0, 100); Object.assign(plot, { state: "empty", crop: "", startedAt: 0 }); notify(`获得${coins}金币，成长值增加${growth}%并收获${info.name}。`); checkWin(); renderAll(); }
+      function buyAnimal(type) { const info = animalInfo[type], animal = state.animals[type]; if (animal.state !== "dead") return notify(`${info.name}已经在围栏中，不能重复购买。`); if (state.gold < info.price) return notify("金币不足，无法购买动物。"); state.gold -= info.price; state.animals[type] = { state: "idle", startedAt: 0, count: 0 }; notify(`购买${info.name}成功。`); renderAll(); }
+      function startAnimal(type) { const animal = state.animals[type], info = animalInfo[type]; if (animal.state !== "idle") return; animal.state = "producing"; animal.startedAt = Date.now(); notify(`${info.name}开始生产${info.productName}。`); renderAll(); }
+      function collectAnimal(type) { const animal = state.animals[type], info = animalInfo[type]; if (animal.state !== "ready") return; state.produce[info.product]++; animal.count++; const growth = randInt(1, 3); state.growth = clamp(state.growth + growth, 0, 100); if (animal.count >= 20) { state.animals[type] = { state: "dead", startedAt: 0, count: 0 }; notify(`收取${info.productName}成功，成长值增加${growth}%。${info.name}已完成20次收获并退休。`); } else { animal.state = "idle"; animal.startedAt = 0; notify(`收取${info.productName}成功，成长值增加${growth}%。`); } checkWin(); renderAll(); }
+      function demandPrice(key) { const base = productInfo[key].price; if (state.mood > 70) return base + randInt(1, 5); const moodCap = .3 + .5 * state.mood / 70; const multiplier = .3 + Math.random() * (moodCap - .3); return Math.max(1, Math.floor(base * multiplier)); }
+      function restartShopTimer() { clearInterval(shopTimer); shopTimer = setInterval(refreshDemands, 120000); }
+      function refreshDemands() { const keys = Object.keys(productInfo).sort(() => Math.random() - .5).slice(0, randInt(1, 2)); state.demands = keys.map(key => ({ key, price: 0, remaining: randInt(1, 5) })); state.mood = 100; state.demands.forEach(demand => { demand.price = demandPrice(demand.key); }); restartShopTimer(); renderAll(); }
+      function sellDemand(index, requestedAmount) { const demand = state.demands[index], info = demand && productInfo[demand.key]; if (!demand) return notify("这项收购需求已不存在。"); const available = state.produce[demand.key]; const amount = Math.max(0, Math.min(demand.remaining, available, Math.floor(Number(requestedAmount) || 0))); if (amount <= 0) return notify(`仓库中没有足够的${info.name}。`); state.produce[demand.key] -= amount; state.gold += amount * demand.price; demand.remaining -= amount; notify(`出售${amount}${info.unit}${info.name}，获得${amount * demand.price}金币。`); if (demand.remaining <= 0) state.demands.splice(index, 1); renderAll(); }
+      function refreshForCoin() { if (state.gold < 1) return notify("金币不足，无法刷新店铺。"); state.gold--; refreshDemands(); notify("已花费1金币，店铺需求已刷新，商人心情恢复100%。"); }
+      function haggle() { if (state.mood <= 0) return notify("商人的心情已经降到最低。"); const drop = randInt(100, 150) / 10; state.mood = Math.max(0, Math.round((state.mood - drop) * 10) / 10); state.demands.forEach(demand => { demand.price = demandPrice(demand.key); }); notify(`商人心情下降${drop.toFixed(1)}%，当前${state.mood.toFixed(1)}%。收购价已变化。`); renderAll(); }
+      function exchange(gift, cost, name) { if (state.gold < cost) return notify("金币不足，无法兑换礼品。"); state.gold -= cost; state.gifts.push(name); notify("兑换成功，礼品已加入礼品记录。"); renderAll(); }
+      function renderAll() { renderHeader(); renderPlots(); renderAnimals(); renderDemands(); renderShops(); renderInventory(); applyLanguage(); }
+      function renderHeader() { document.getElementById("gold").textContent = state.gold; document.getElementById("growth").textContent = state.growth; document.getElementById("growth-bar").style.width = `${state.growth}%`; const pageName = currentPage === "field" ? "菜地" : currentPage === "farm" ? "农场" : "周边商城"; document.getElementById("current-page").textContent = translateString(pageName); document.getElementById("mood").textContent = `${state.mood.toFixed(1).replace(".0", "")}%`; document.getElementById("mood-bar").style.width = `${state.mood}%`; const moodState = state.mood > 70 ? "满意" : state.mood > 40 ? "不满" : "愤怒"; document.getElementById("mood-state").textContent = translateString(moodState); document.getElementById("refresh-demand-btn").disabled = state.gold < 1; document.querySelectorAll(".nav button").forEach(b => b.classList.toggle("active", b.dataset.page === currentPage)); }
+      function renderPlots() { document.getElementById("plots").innerHTML = state.plots.map((plot, i) => { if (plot.state === "empty") return `<article class="plot empty"><div class="plot-title"><span>菜地 ${i + 1}</span><span class="status">空地</span></div><div class="crop-icon">🟫</div><p class="note">准备好种下一颗希望</p><button data-plot="${i}">选择种子</button></article>`; const info = cropInfo[plot.crop], elapsed = Math.floor((Date.now() - plot.startedAt) / 1000), left = Math.max(0, info.duration - elapsed - 1), percent = plot.state === "mature" ? 100 : Math.min(99, Math.floor(elapsed / info.duration * 100)); return `<article class="plot ${plot.state === "mature" ? "mature" : ""}"><div class="plot-title"><span>菜地 ${i + 1} · ${info.name}</span><span class="status ${plot.state === "mature" ? "ready" : ""}">${plot.state === "mature" ? "已成熟" : "生长中"}</span></div><div class="crop-icon">${info.icon}</div><div class="bar"><i style="width:${percent}%"></i></div><div class="note">${plot.state === "mature" ? "已成熟" : `剩余 ${formatTime(left)}`}</div><div class="actions">${plot.state === "mature" ? `<button data-harvest="${i}">收获</button>` : ""}</div></article>`; }).join(""); }
+      function renderAnimals() { document.getElementById("animals").innerHTML = Object.keys(animalInfo).map(type => { const info = animalInfo[type], animal = state.animals[type], elapsed = Math.floor((Date.now() - animal.startedAt) / 1000), left = Math.max(0, info.duration - elapsed), ready = animal.state === "ready", dead = animal.state === "dead"; const status = dead ? "已死亡" : ready ? "可以收取" : animal.state === "producing" ? "生产中" : "空闲"; return `<article class="animal ${ready ? "ready" : ""} ${dead ? "dead" : ""}"><div class="animal-icon">${dead ? "🪦" : info.icon}</div><h3>${info.name}</h3><div class="meta">状态：<strong>${status}</strong> · 产物：${info.productName}</div><div class="meta">${dead ? "围栏已变为空栏" : animal.state === "producing" ? `剩余：${formatTime(left)}` : animal.state === "ready" ? "产物已准备好" : "可以开始生产"} · 收获次数：${animal.count}/20</div><div class="actions">${dead ? `<button data-buy-animal="${type}">重新购买（${info.price}金币）</button>` : `<button data-start="${type}" ${animal.state !== "idle" ? "disabled" : ""}>开始生产</button><button data-collect="${type}" ${!ready ? "disabled" : ""}>收取</button>`}</div></article>`; }).join(""); }
+      function renderDemands() { document.getElementById("demands").innerHTML = state.demands.length ? state.demands.map((d, i) => { const info = productInfo[d.key], max = Math.min(d.remaining, state.produce[d.key]), quantity = max > 0 ? 1 : 0; return `<div class="demand"><div class="row"><strong>${info.icon} ${info.name}</strong><span class="price">${d.price}金币/${info.unit}</span></div><div class="note">仓库：${state.produce[d.key]} · 本次最多收购：${d.remaining}${info.unit}</div><div class="quantity-control"><button class="secondary" data-qty-dec="${i}">−</button><input type="number" min="0" max="${max}" value="${quantity}" data-qty="${i}" aria-label="出售数量"><button class="secondary" data-qty-inc="${i}">＋</button><span class="estimate" data-estimate="${i}">预计获得${quantity * d.price}金币</span></div><div class="actions"><button data-sell="${i}" data-sell-amount="${quantity}" ${max < 1 ? "disabled" : ""}>出售</button></div></div>`; }).join("") : `<div class="empty-note">当前暂无收购需求，等待下一次刷新。</div>`; }
+      function renderShops() { document.getElementById("seed-shop").innerHTML = ["cornSeed", "strawberrySeed"].map(type => `<div class="shop-item row"><div><strong>${type === "cornSeed" ? "🌽 玉米种子" : "🍓 草莓种子"}</strong><div class="note">库存：${state.seeds[type]}</div></div><div><span class="price">2金币</span><button data-buy-seed="${type}">购买</button></div></div>`).join(""); document.getElementById("animal-shop").innerHTML = Object.keys(animalInfo).map(type => { const info = animalInfo[type], can = state.animals[type].state === "dead" && state.gold >= info.price; return `<div class="shop-item"><div class="row"><strong>${info.icon} ${info.name}</strong><span class="price">${info.price}金币</span></div><div class="actions"><button data-buy-animal="${type}" ${state.animals[type].state !== "dead" || !can ? "disabled" : ""}>${state.gold < info.price ? "金币不足" : state.animals[type].state === "dead" ? "购买" : "已拥有"}</button></div></div>`; }).join(""); }
+      function renderInventory() { document.getElementById("seed-inventory").innerHTML = Object.entries({ cornSeed: "🌽 玉米种子", strawberrySeed: "🍓 草莓种子" }).map(([k, n]) => `<div class="inventory-card seed"><span>${n}</span><strong>${state.seeds[k]}</strong></div>`).join(""); document.getElementById("produce-inventory").innerHTML = Object.keys(productInfo).map(k => `<div class="inventory-card produce"><span>${productInfo[k].icon} ${productInfo[k].name}</span><strong>${state.produce[k]}</strong></div>`).join(""); document.getElementById("gift-record").textContent = state.gifts.length ? state.gifts.join("、") : "暂无兑换记录"; }
+      function openModal(id) { document.getElementById(id).classList.add("show"); } function closeModal(id) { document.getElementById(id).classList.remove("show"); }
+      document.addEventListener("click", e => { const el = e.target; if (el.dataset.page) { currentPage = el.dataset.page; document.querySelectorAll(".page").forEach(p => p.classList.toggle("active", p.id === `page-${currentPage}`)); renderHeader(); } if (el.dataset.plot) openSeedChoice(Number(el.dataset.plot)); if (el.dataset.plant) plant(el.dataset.plant); if (el.dataset.harvest) harvestPlot(Number(el.dataset.harvest)); if (el.dataset.buySeed) buySeed(el.dataset.buySeed); if (el.dataset.buyAnimal) buyAnimal(el.dataset.buyAnimal); if (el.dataset.start) startAnimal(el.dataset.start); if (el.dataset.collect) collectAnimal(el.dataset.collect); if (el.dataset.sell) sellDemand(Number(el.dataset.sell), document.querySelector(`[data-qty="${el.dataset.sell}"]`)?.value || el.dataset.sellAmount); if (el.dataset.qtyInc || el.dataset.qtyDec) { const index = Number(el.dataset.qtyInc ?? el.dataset.qtyDec), input = document.querySelector(`[data-qty="${index}"]`), demand = state.demands[index], max = Math.min(demand.remaining, state.produce[demand.key]); input.value = clamp(Number(input.value) + (el.dataset.qtyInc ? 1 : -1), 0, max); input.dispatchEvent(new Event("input", { bubbles: true })); } if (el.dataset.close) closeModal(el.dataset.close); if (el.dataset.gift) el.dataset.gift === "corn-plush" ? exchange("corn-plush", 500, "玉米毛绒挂件") : exchange("farm-box", 1000, "农场礼盒"); });
+      document.addEventListener("input", e => { const input = e.target; if (!input.dataset.qty) return; const index = Number(input.dataset.qty), demand = state.demands[index]; if (!demand) return; const max = Math.min(demand.remaining, state.produce[demand.key]); input.value = clamp(Math.floor(Number(input.value) || 0), 0, max); const estimate = document.querySelector(`[data-estimate="${index}"]`); if (estimate) estimate.textContent = `${translateString("预计获得")}${input.value * demand.price}${translateString("金币")}`; const sell = document.querySelector(`[data-sell="${index}"]`); if (sell) sell.dataset.sellAmount = input.value; });
+      document.getElementById("warehouse-btn").addEventListener("click", () => openModal("warehouse-modal")); document.getElementById("haggle-btn").addEventListener("click", haggle); document.getElementById("refresh-demand-btn").addEventListener("click", refreshForCoin); document.querySelectorAll("[data-language]").forEach(button => button.addEventListener("click", () => setLanguage(button.dataset.language))); document.getElementById("start-game-btn").addEventListener("click", startGame); document.getElementById("reset-btn").addEventListener("click", () => { closeModal("warehouse-modal"); closeModal("seed-modal"); closeModal("win-modal"); resetState(); notify("游戏已重新开始。"); }); document.getElementById("restart-win").addEventListener("click", () => { closeModal("win-modal"); resetState(); notify("游戏已重新开始。"); });
+      document.querySelectorAll(".modal-backdrop").forEach(m => m.addEventListener("click", e => { if (e.target === m) closeModal(m.id); }));
+      setInterval(() => { if (!gameStarted) return; const now = Date.now(); state.plots.forEach(p => { if (p.state === "growing" && Math.floor((now - p.startedAt) / 1000) >= cropInfo[p.crop].duration) p.state = "mature"; }); Object.keys(state.animals).forEach(type => { const a = state.animals[type]; if (a.state === "producing" && Math.floor((now - a.startedAt) / 1000) >= animalInfo[type].duration) a.state = "ready"; }); renderAll(); }, 1000);
+      resetState();
+    })();
+  </script>
+</body>
+</html>
